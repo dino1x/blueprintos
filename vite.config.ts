@@ -7,6 +7,9 @@ const agentNativePlugins = agentNative as unknown as (
   options?: Parameters<typeof agentNative>[0],
 ) => any[];
 export default defineConfig({
+  server: {
+    port: 3000,
+  },
   optimizeDeps: {
     entries: [
       "app/entry.client.tsx",
@@ -22,4 +25,7 @@ export default defineConfig({
       ssrStubs: ["shiki"],
     }),
   ],
+  build: {
+    sourcemap: false,
+  },
 });
