@@ -1,3 +1,4 @@
+import { useActionQuery } from "@agent-native/core/client/hooks";
 import { appPath } from "@agent-native/core/client/api-path";
 import { useT } from "@agent-native/core/client/i18n";
 import {
@@ -12,10 +13,9 @@ import {
 } from "@agent-native/toolkit/app/chat/ownership-history";
 import { OrgSwitcher } from "@agent-native/toolkit/app/org";
 import { openCommandMenu } from "@agent-native/toolkit/app/shared";
-import { AgentNativeIcon } from "@agent-native/toolkit/app/shared/AgentNativeIcon";
 import {
   IconEdit,
-  IconHome,
+  IconRuler2,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconLoader2,
@@ -30,6 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SheetStamp, SheetTitleMark } from "@/features/shell/SheetStamp";
 import { APP_TITLE } from "@/lib/app-config";
 import { chatThreadPath, HOME_PATH, threadIdFromPath } from "@/lib/chat-paths";
 import { cn } from "@/lib/utils";
@@ -117,15 +118,14 @@ function persistActiveThreadId(threadId: string) {
   } catch {}
 }
 
-function HomeNavLink({ collapsed }: { collapsed: boolean }) {
-  const t = useT();
+function SheetsNavLink({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
-  const active = location.pathname === HOME_PATH;
+  const active = location.pathname.startsWith("/sheets");
   const link = (
     <Link
-      to={HOME_PATH}
+      to="/sheets"
       aria-current={active ? "page" : undefined}
-      aria-label={collapsed ? t("navigation.home") : undefined}
+      aria-label={collapsed ? "Drawing register" : undefined}
       className={cn(
         "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         active && "bg-sidebar-accent",
@@ -134,23 +134,54 @@ function HomeNavLink({ collapsed }: { collapsed: boolean }) {
           : "h-8 w-full gap-3 rounded-lg px-3 text-sm font-medium",
       )}
     >
-      <IconHome className="size-4 shrink-0" strokeWidth={1.8} />
-      <span className={collapsed ? "sr-only" : "truncate"}>
-        {t("navigation.home")}
-      </span>
+      <IconRuler2 className="size-4 shrink-0" strokeWidth={1.8} />
+      <span className={collapsed ? "sr-only" : "truncate"}>Drawing register</span>
     </Link>
   );
-
   if (collapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">{t("navigation.home")}</TooltipContent>
+        <TooltipContent side="right">Drawing register</TooltipContent>
       </Tooltip>
     );
   }
+  return <div className="px-2 pb-1">{link}</div>;
+}
 
-  return <div className="px-2">{link}</div>;
+function SheetIndex({ collapsed }: { collapsed: boolean }) {
+  const location = useLocation();
+  const { data } = useActionQuery("list-sheets", {});
+  if (collapsed || !data?.sheets.length) return null;
+  return (
+    <div className="px-2 pb-3 pt-2">
+      <p className="bp-mono px-3 pb-1 text-[11px] uppercase tracking-wider text-sidebar-foreground">Sheets</p>
+      <ul>
+        {data.sheets.slice(0, 10).map((s) => {
+          const active = location.pathname === `/sheets/${s.id}`;
+          return (
+            <li key={s.id}>
+              <Link
+                to={`/sheets/${s.id}`}
+                className={cn(
+                  "flex h-8 items-center gap-2 px-3 text-[13px] text-sidebar-accent-foreground hover:bg-sidebar-accent",
+                  active && "bg-sidebar-accent",
+                )}
+              >
+                <span className="bp-mono w-10 shrink-0 text-[11px] text-sidebar-foreground">{s.sheetNumber}</span>
+                <span className="bp-serif min-w-0 flex-1 truncate">{s.title}</span>
+                {s.sealStatus === "SEALED" ? (
+                  <span className="bp-mono text-[11px] text-[hsl(var(--bp-redline))]">SEAL</span>
+                ) : s.auditCurrent && s.critical > 0 ? (
+                  <span className="bp-mono text-[11px] text-[hsl(var(--bp-redline))]">{s.critical}</span>
+                ) : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
@@ -267,6 +298,11 @@ function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
     );
   }
 
+  // Skip the empty thread rail until the architect starts a chat thread.
+  if (threads.length === 0 && localMineRows.length === 0) {
+    return <div className="px-2 pb-3">{newChatButton}</div>;
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-2 pb-3">{newChatButton}</div>
@@ -374,10 +410,7 @@ export function Sidebar({
                 aria-label={APP_TITLE}
                 className="flex size-8 items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               >
-                <AgentNativeIcon
-                  aria-hidden="true"
-                  className="h-3.5 w-6 text-sidebar-accent-foreground"
-                />
+                <SheetStamp />
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right">{APP_TITLE}</TooltipContent>
@@ -388,13 +421,8 @@ export function Sidebar({
               to="/"
               className="flex min-w-0 flex-1 items-center gap-3 rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
-              <AgentNativeIcon
-                aria-hidden="true"
-                className="h-3.5 w-6 shrink-0 text-sidebar-accent-foreground"
-              />
-              <span className="truncate text-sm font-semibold text-sidebar-accent-foreground">
-                {APP_TITLE}
-              </span>
+              <SheetStamp />
+              <SheetTitleMark />
             </Link>
           </>
         )}
@@ -407,7 +435,8 @@ export function Sidebar({
           collapsed ? "items-center gap-1 px-1 py-2" : "pt-1",
         )}
       >
-        <HomeNavLink collapsed={collapsed} />
+        <SheetsNavLink collapsed={collapsed} />
+        <SheetIndex collapsed={collapsed} />
         <ChatThreadsSection collapsed={collapsed} />
       </nav>
 

@@ -1,8 +1,8 @@
 {
   "name": "BlueprintOS",
   "short_name": "BlueprintOS",
-  "description": "Workspace app for BlueprintOS.",
-  "start_url": "./home",
+  "description": "Floorplan CAD and proof-carrying statutory compliance desk.",
+  "start_url": "./sheets",
   "background_color": "#111111",
   "theme_color": "#18181B",
   "icons": [

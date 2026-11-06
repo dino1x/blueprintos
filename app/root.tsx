@@ -35,6 +35,8 @@ import {
 import { TAB_ID } from "@/lib/tab-id";
 
 import { i18nCatalog } from "./i18n";
+// Registers the cited-redline card the agent chat shows for propose-redline.
+import "./features/compliance/CitedRedlineCard";
 
 import stylesheet from "./global.css?url";
 
@@ -50,7 +52,8 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
-const THEME_INIT_SCRIPT = getThemeInitScript();
+// Drafting vellum is the native look; dark stays one toggle away.
+const THEME_INIT_SCRIPT = getThemeInitScript("light");
 const LOCALE_INIT_SCRIPT = getLocaleInitScript();
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -94,10 +97,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function DbSyncSetup() {
   const qc = useQueryClient();
+  const { pathname } = useLocation();
   useNavigationState();
   useDbSync({
     queryClient: qc,
     ignoreSource: TAB_ID,
+    ...(pathname.startsWith("/sheets/")
+      ? { realtime: { reason: "the agent and reviewers move geometry and stage cited redlines on this sheet while it is open" } }
+      : {}),
+    pauseWhenHidden: true,
   });
   return null;
 }
@@ -184,6 +192,7 @@ export default function Root() {
     <AppToolkitProvider>
       <AppProviders
         queryClient={queryClient}
+        defaultTheme="light"
         skeletonLayout={skeletonLayoutForPath(pathname)}
         i18n={{ catalog: i18nCatalog }}
       >
