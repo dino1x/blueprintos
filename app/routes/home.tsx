@@ -1,9 +1,9 @@
 import HomePage from "@/components/home/HomePage";
 import { APP_TITLE } from "@/lib/app-config";
 
-const SEO_TITLE = `${APP_TITLE} - Open Source AI app starter with actions`;
+const SEO_TITLE = "BlueprintOS — check every clearance, seal it with proof";
 const SEO_DESCRIPTION =
-  "Open Source starter for agent-native apps with durable chat, shared actions, UI state, tools, and a backend your agent can extend.";
+  "A floor-plan desk that measures drawings against the building code, stages cited redlines, and leaves applying and sealing to the architect.";
 
 export function meta() {
   return [

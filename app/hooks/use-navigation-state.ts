@@ -18,13 +18,20 @@ export interface NavigationState {
   path?: string;
   publicPath?: string;
   threadId?: string;
+  sheetId?: string;
+  selectedZoneId?: string;
+  selectedViolationId?: string;
+  activeClauseId?: string;
+  pinX?: number;
+  pinY?: number;
 }
 
 export function useNavigationState() {
   useAgentRouteState<NavigationState>({
     browserTabId: TAB_ID,
     requestSource: TAB_ID,
-    getNavigationState: ({ pathname }) => navigationStateForPath(pathname),
+    getNavigationState: ({ pathname, searchParams }) =>
+      navigationStateForPath(pathname, searchParams),
     getCommandPath: commandPathForNavigation,
   });
 }
@@ -62,17 +69,34 @@ function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-export function navigationStateForPath(pathname: string): NavigationState {
+export function navigationStateForPath(
+  pathname: string,
+  searchParams?: URLSearchParams,
+): NavigationState {
   const threadId = threadIdFromPath(pathname);
+  const sheetId = pathname.match(/^\/sheets\/([^/]+)/)?.[1];
+  const zone = searchParams?.get("zone");
+  const violation = searchParams?.get("violation");
+  const clause = searchParams?.get("clause");
+  const px = Number(searchParams?.get("px") ?? "");
+  const py = Number(searchParams?.get("py") ?? "");
   return {
-    view: viewForPath(pathname),
+    view: sheetId ? "sheet" : viewForPath(pathname),
     path: pathname,
     publicPath: appPathFromLocalRoute(pathname),
     ...(threadId ? { threadId } : {}),
+    ...(sheetId ? { sheetId: decodeURIComponent(sheetId) } : {}),
+    ...(sheetId && zone ? { selectedZoneId: zone } : {}),
+    ...(sheetId && violation ? { selectedViolationId: violation } : {}),
+    ...(sheetId && clause ? { activeClauseId: clause } : {}),
+    ...(sheetId && violation && Number.isFinite(px) && Number.isFinite(py) && searchParams?.has("px")
+      ? { pinX: px, pinY: py }
+      : {}),
   };
 }
 
 function viewForPath(pathname: string): string {
+  if (pathname.startsWith("/sheets")) return "sheets";
   if (isChatPathname(pathname)) return "chat";
   if (pathname === HOME_PATH) return "home";
   if (pathname.startsWith("/database")) return "database";
@@ -93,6 +117,8 @@ function pathForView(view?: string): string {
       return NEW_CHAT_PATH;
     case "home":
       return HOME_PATH;
+    case "sheets":
+      return "/sheets";
     case "database":
       return "/database";
     case "extensions":
