@@ -1,6 +1,6 @@
-# Chat — Agent Guide
+# BlueprintOS — Agent Guide
 
-Chat is the minimal chat-first agent-native app. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
+BlueprintOS is built on the chat-first agent-native starter. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
 
 ## Skills
 
@@ -22,12 +22,22 @@ For custom branding, keep `server/plugins/agent-native-email-branding.ts` aligne
 - `navigation` describes the view and selected ids. Chat is `chat` at `/chat` and `/chat/<threadId>`; the Get started page is `home` at `/home`; `/` opens shared sign-in/signup.
 - Use `navigate` when supported and `view-screen` for a fresh read of visible details; basic navigation is already in `<current-screen>`.
 
-## Building a domain app
-
-Choose the primary workflow and route before editing. Add a domain route under `app/routes/` and set `app.homePath` in `server/plugins/agent-native-email-branding.ts` with `defineAppConfig`. The default Get started page lives at `/home`, and Chat stays at `/chat`; edit `app/routes/home.tsx` when replacing that page with a domain-specific home. Add a static link in `app/components/layout/Sidebar.tsx` before `ChatThreadsSection`; `Header.tsx` uses `APP_TITLE` elsewhere. Shared sidebar and AgentInspector remain.
-
-Use `adding-a-feature` for functional parity and `frontend-design` for a user-facing screen. Keep feature guidance here; do not rewrite `README.md` or `DESIGN.md`. After all edits, run one typecheck, one doctor check, and one browser smoke of the primary workflow, including overlap rejection, cancellation freeing the slot, and authenticated landing. Skip production build and extra test suites.
-
-Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
-
 - Guarded verification: run `pnpm agent-native:doctor`; fix findings before done.
+
+## BlueprintOS compliance desk
+
+2D floorplan CAD with a proof-carrying code desk. `/sheets` is the drawing register; `/sheets/:sheetId?zone=&violation=&clause=&px=&py=` is the workbench. `navigation` adds `sheetId`, `selectedZoneId`, `selectedViolationId`, `activeClauseId`, `pinX`, `pinY`.
+
+### Operating protocol
+1. **Coordinate system & engine:** Coordinates are in inches (`x` right, `y` down). All measurements come from `shared/spatial/` (`check-clearances`): Shoelace polygon area, opposing-wall clear width, Dijkstra visibility-graph egress, IBC Table 1004.5 occupant loads, 0.2 in/occupant door capacity, dead-end corridor projections, and pull-side maneuvering clearance.
+2. **Citation firewall (`propose-redline`):** Requires an active `violation_receipt_id`, its `clause_id`, and the matching SHA-256 `clause_hash`. Throws `UNGROUNDED_CITATION` (409) when a receipt is missing, mismatched, or invalidated by a subsequent geometry edit (`move-vertex`). Always re-run `check-clearances` after geometry changes before proposing a new redline.
+3. **Human seal boundary:** `seal-sheet` is strictly UI-only; agents cannot stamp a sheet. Any post-seal edit reverts the sheet status to `STALE_REQUIRES_REAUDIT`.
+4. **Spatial rule memory:** Consult `.agents/skills/spatial-compliance-rules/SKILL.md` (and `learnedRules` from `get-sheet-detail`) before proposing geometry. `learn-compliance-rule` records architect adjustments to agent drafts.
+5. **Browser WebMCP & generative views:** On an open sheet, `window.__agentNativeWebMcp` exposes `focus-violation-pin` and `export-sheet-svg`. Use `render-inline-extension` for Alpine before/after redline comparison tables and `save-data-program` (`appAction("list-sheets")`) for register-wide critical violation summaries.
+
+### Domain actions (`actions/`)
+- `list-sheets` / `get-sheet-detail` — read the drawing register, zones, doors, clauses+hashes, receipts, redlines, and learned rules.
+- `check-clearances` — run the spatial compliance engine and emit cryptographic violation receipts.
+- `move-vertex` — architect-only (UI, not an agent tool): update vertex coordinates, zone polygons, or door widths. The agent changes geometry only through `propose-redline`.
+- `propose-redline` / `reject-redline` — stage a cited redline through the firewall, or withdraw it. `apply-redline` is architect-only (UI), like `seal-sheet`. Applying a redline moves shared walls with it: when you shift a whole wall (both ends by the same offset), the neighbouring zone's corners and any doors hung on that wall move too, so rooms never overlap. Move whole walls rather than skewing them, and make sure the neighbour you shrink stays above its own minimums.
+- `learn-compliance-rule` / `import-floorplan` — extract spatial rules from architect edits or import a floorplan JSON sheet.
